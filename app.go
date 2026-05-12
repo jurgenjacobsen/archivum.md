@@ -1,14 +1,22 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 
+	"github.com/chromedp/cdproto/page"
+	"github.com/chromedp/chromedp"
 	"github.com/fsnotify/fsnotify"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
+	"github.com/yuin/goldmark"
+	"github.com/yuin/goldmark/extension"
+	"github.com/yuin/goldmark/parser"
+	"github.com/yuin/goldmark/renderer/html"
 )
 
 // App struct
@@ -179,4 +187,208 @@ func (a *App) ReadFile(path string) (string, error) {
 // SaveFile saves the content to a file
 func (a *App) SaveFile(path string, content string) error {
 	return os.WriteFile(path, []byte(content), 0644)
+}
+
+// PrintToPDF generates a PDF from the given markdown content
+func (a *App) PrintToPDF(markdown string, filename string) error {
+	// Determine default filename
+	defaultName := "document.pdf"
+	if filename != "" {
+		base := filepath.Base(filename)
+		ext := filepath.Ext(base)
+		defaultName = base[:len(base)-len(ext)] + ".pdf"
+	}
+
+	// Get save path from user
+	path, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
+		Title:           "Save PDF",
+		DefaultFilename: defaultName,
+		Filters: []runtime.FileFilter{
+			{
+				DisplayName: "PDF Files (*.pdf)",
+				Pattern:     "*.pdf",
+			},
+		},
+	})
+	if err != nil {
+		return err
+	}
+	if path == "" {
+		return nil
+	}
+
+	// Convert markdown to HTML
+	md := goldmark.New(
+		goldmark.WithExtensions(extension.GFM),
+		goldmark.WithParserOptions(
+			parser.WithAutoHeadingID(),
+		),
+		goldmark.WithRendererOptions(
+			html.WithHardWraps(),
+			html.WithXHTML(),
+		),
+	)
+
+	var buf bytes.Buffer
+	if err := md.Convert([]byte(markdown), &buf); err != nil {
+		return err
+	}
+
+	// Create a full HTML document with styling
+	htmlTemplate := `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{{TITLE}}</title>
+    <style>
+        body {
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            line-height: 1.6;
+            color: #242424;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px;
+        }
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 900;
+            margin-bottom: 1.5rem;
+            border-bottom: 8px solid #242424;
+            padding-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: -0.05em;
+            line-height: 1;
+        }
+        h2 {
+            font-size: 1.75rem;
+            font-weight: 800;
+            margin-top: 2.5rem;
+            margin-bottom: 1.25rem;
+            border-bottom: 4px solid #242424;
+            padding-bottom: 0.25rem;
+            text-transform: uppercase;
+            letter-spacing: -0.02em;
+        }
+        h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+        }
+        blockquote {
+            border-left: 12px solid #242424;
+            padding-left: 1.5rem;
+            font-style: italic;
+            margin: 2rem 0;
+            font-size: 1.1rem;
+        }
+        code {
+            background-color: #f0f0f0;
+            padding: 0.2rem 0.4rem;
+            font-family: monospace;
+        }
+        pre {
+            background-color: #242424;
+            color: white;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            overflow-x: auto;
+        }
+        pre code {
+            background-color: transparent;
+            color: inherit;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1.5rem;
+        }
+        th, td {
+            border: 1px solid #242424;
+            padding: 0.75rem;
+            text-align: left;
+        }
+        th {
+            background-color: #242424;
+            color: white;
+        }
+        img {
+            max-width: 100% !important;
+            vertical-align: middle !important;
+            display: inline-block !important;
+            margin: 2px !important;
+        }
+        a {
+            display: inline-block !important;
+            text-decoration: none;
+            color: #242424;
+        }
+        p {
+            margin-bottom: 1.25rem;
+        }
+        @media print {
+            body { padding: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="markdown-body">
+        {{CONTENT}}
+    </div>
+</body>
+</html>
+`
+	htmlDoc := strings.Replace(htmlTemplate, "{{CONTENT}}", buf.String(), 1)
+	htmlDoc = strings.Replace(htmlDoc, "{{TITLE}}", defaultName, 1)
+
+	// Create a temporary file for the HTML content to ensure remote resources load correctly
+	tmpFile, err := os.CreateTemp("", "archivum-*.html")
+	if err != nil {
+		return err
+	}
+	tmpFile.Close()
+	defer os.Remove(tmpFile.Name())
+
+	if err := os.WriteFile(tmpFile.Name(), []byte(htmlDoc), 0644); err != nil {
+		return err
+	}
+
+	// Use chromedp to print to PDF
+	ctx, cancel := chromedp.NewContext(context.Background())
+	defer cancel()
+
+	var pdfBuffer []byte
+	if err := chromedp.Run(ctx,
+		chromedp.Navigate("file:///"+filepath.ToSlash(tmpFile.Name())),
+		// Wait for all images to load
+		chromedp.Evaluate(`
+			Promise.all(Array.from(document.images).map(img => {
+				if (img.complete) return Promise.resolve();
+				return new Promise(resolve => { img.onload = img.onerror = resolve; });
+			}))
+		`, nil),
+		chromedp.ActionFunc(func(ctx context.Context) error {
+			buf, _, err := page.PrintToPDF().
+				WithPrintBackground(true).
+				WithPaperWidth(8.27).   // A4
+				WithPaperHeight(11.69). // A4
+				WithMarginTop(0.4).
+				WithMarginBottom(0.4).
+				WithMarginLeft(0.4).
+				WithMarginRight(0.4).
+				Do(ctx)
+			if err != nil {
+				return err
+			}
+			pdfBuffer = buf
+			return nil
+		}),
+	); err != nil {
+		return err
+	}
+
+
+	return os.WriteFile(path, pdfBuffer, 0644)
 }

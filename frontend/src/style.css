@@ -153,6 +153,13 @@ html, body, #root {
     letter-spacing: 0.1em;
 }
 
+.markdown-body img {
+    max-width: 100% !important;
+    vertical-align: middle !important;
+    display: inline-block !important;
+    margin: 2px !important;
+}
+
 /* Nuclear Print Reset - Essential for Wails/WebView2 printing */
 @media print {
     /* Hide everything marked no-print */

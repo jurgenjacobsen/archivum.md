@@ -3,7 +3,7 @@ import { Sidebar } from './components/Sidebar';
 import { Toolbar } from './components/Toolbar';
 import { Editor } from './components/Editor';
 import { Modal } from './components/Modal';
-import { ReadFile, SaveFile, GetSettings, SaveSettings, CheckForUpdates, GetInitialFile } from '../wailsjs/go/main/App';
+import { ReadFile, SaveFile, GetSettings, SaveSettings, CheckForUpdates, GetInitialFile, PrintToPDF } from '../wailsjs/go/main/App';
 import { BrowserOpenURL } from '../wailsjs/runtime/runtime';
 
 function App() {
@@ -13,6 +13,7 @@ function App() {
   const [autoSave, setAutoSave] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isAutoSaving, setIsAutoSaving] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
   const [syncScroll, setSyncScroll] = useState(true);
 
   // Check for initial file
@@ -169,7 +170,16 @@ function App() {
 
   const handlePrint = async () => {
     if (!activeFile) return;
-    window.print();
+    const filename = activeFile.split(/[\\/]/).pop() || '';
+    try {
+      setIsPrinting(true);
+      await PrintToPDF(content, filename);
+      setIsPrinting(false);
+    } catch (err) {
+      setIsPrinting(false);
+      showAlert("Print Error", "Failed to generate PDF.");
+      console.error("Error generating PDF:", err);
+    }
   };
 
   const handleFormat = (type: string) => {
@@ -259,6 +269,7 @@ function App() {
             setAutoSave={handleSetAutoSave}
             isSaving={isSaving}
             isAutoSaving={isAutoSaving}
+            isPrinting={isPrinting}
             syncScroll={syncScroll}
             setSyncScroll={handleSetSyncScroll}
           />

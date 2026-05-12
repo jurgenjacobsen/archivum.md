@@ -12,11 +12,15 @@ export function Delete(arg1:string):Promise<void>;
 
 export function GetDirectoryLevel(arg1:string):Promise<Array<main.FileNode>>;
 
+export function GetInitialFile():Promise<main.InitialFile>;
+
 export function GetSettings(arg1:string):Promise<main.Settings>;
 
 export function Greet(arg1:string):Promise<string>;
 
 export function OpenWorkspaceDialog():Promise<string>;
+
+export function PrintToPDF(arg1:string,arg2:string):Promise<void>;
 
 export function ReadFile(arg1:string):Promise<string>;
 

@@ -9,6 +9,7 @@ interface ToolbarProps {
   setAutoSave: (value: boolean) => void;
   isSaving: boolean;
   isAutoSaving: boolean;
+  isPrinting: boolean;
   syncScroll: boolean;
   setSyncScroll: (value: boolean) => void;
 }
@@ -22,6 +23,7 @@ export const Toolbar = ({
   setAutoSave, 
   isSaving, 
   isAutoSaving,
+  isPrinting,
   syncScroll,
   setSyncScroll
 }: ToolbarProps) => {
@@ -80,11 +82,11 @@ export const Toolbar = ({
 
         <button
           onClick={onPrint}
-          disabled={!activeFile}
+          disabled={!activeFile || isPrinting}
           className="p-1.5 hover:bg-[#242424] hover:text-white transition-colors rounded-sm flex-shrink-0 disabled:opacity-20"
-          title="Print to PDF/Printer"
+          title={isPrinting ? "Generating PDF..." : "Print to PDF/Printer"}
         >
-          <Printer size={18} />
+          {isPrinting ? <Loader2 size={18} className="animate-spin" /> : <Printer size={18} />}
         </button>
       </div>
 

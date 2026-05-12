@@ -22,6 +22,10 @@ export function GetDirectoryLevel(arg1) {
   return window['go']['main']['App']['GetDirectoryLevel'](arg1);
 }
 
+export function GetInitialFile() {
+  return window['go']['main']['App']['GetInitialFile']();
+}
+
 export function GetSettings(arg1) {
   return window['go']['main']['App']['GetSettings'](arg1);
 }
@@ -32,6 +36,10 @@ export function Greet(arg1) {
 
 export function OpenWorkspaceDialog() {
   return window['go']['main']['App']['OpenWorkspaceDialog']();
+}
+
+export function PrintToPDF(arg1, arg2) {
+  return window['go']['main']['App']['PrintToPDF'](arg1, arg2);
 }
 
 export function ReadFile(arg1) {

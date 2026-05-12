@@ -16,6 +16,20 @@ export namespace main {
 	        this.isDir = source["isDir"];
 	    }
 	}
+	export class InitialFile {
+	    path: string;
+	    parent: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new InitialFile(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.path = source["path"];
+	        this.parent = source["parent"];
+	    }
+	}
 	export class Settings {
 	    autoSave: boolean;
 	    syncScroll: boolean;
