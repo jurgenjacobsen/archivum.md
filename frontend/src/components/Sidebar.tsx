@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Folder, File, ChevronRight, ChevronDown, FolderOpen, FilePlus, FolderPlus, Edit2, Trash2, GripVertical } from 'lucide-react';
+import { Folder, File, ChevronRight, ChevronDown, FolderOpen, FilePlus, FolderPlus, Edit2, Trash2, GripVertical, Settings } from 'lucide-react';
 import { GetDirectoryLevel, OpenWorkspaceDialog, CreateFile, CreateDirectory, Rename, Delete } from "../../wailsjs/go/main/App";
 import { EventsOn } from "../../wailsjs/runtime/runtime";
 
@@ -16,6 +16,8 @@ interface SidebarProps {
   workspaceRoot: string;
   setWorkspaceRoot: (path: string) => void;
   showConfirm: (title: string, message: string, onConfirm: () => void) => void;
+  onOpenSettings: () => void;
+  onResizeStart: () => void;
 }
 
 const NewItemInput = ({ 
@@ -225,9 +227,9 @@ const FileTreeItem = ({
   }
 
   return (
-    <div className="ml-2 group">
+    <div className="ml-2">
       <div 
-        className={`flex items-center justify-between cursor-pointer p-1 text-sm select-none transition-colors ${isDragOver ? 'bg-[#242424] text-white' : 'hover:bg-gray-100'}`}
+        className={`group flex items-center justify-between cursor-pointer p-1 text-sm select-none transition-colors ${isDragOver ? 'bg-[#242424] text-white' : 'hover:bg-gray-100'}`}
         onClick={toggleOpen}
         draggable
         onDragStart={handleDragStart}
@@ -320,7 +322,9 @@ export const Sidebar = ({
   onFileDelete, 
   workspaceRoot, 
   setWorkspaceRoot,
-  showConfirm
+  showConfirm,
+  onOpenSettings,
+  onResizeStart
 }: SidebarProps) => {
   const [rootItems, setRootItems] = useState<FileNode[]>([]);
   const [showNewInput, setShowNewInput] = useState<'file' | 'folder' | null>(null);
@@ -416,11 +420,18 @@ export const Sidebar = ({
 
   return (
     <div 
-      className={`w-64 h-full border-r border-[#242424] flex flex-col bg-white text-[#242424] overflow-y-auto font-sans transition-colors ${isDragOverRoot ? 'ring-2 ring-inset ring-[#242424]' : ''}`}
+      className={`w-full h-full border-r border-[#242424] flex flex-col bg-white text-[#242424] overflow-y-auto font-sans transition-colors relative ${isDragOverRoot ? 'ring-2 ring-inset ring-[#242424]' : ''}`}
       onDragOver={handleDragOverRoot}
       onDragLeave={() => setIsDragOverRoot(false)}
       onDrop={handleDropRoot}
     >
+      <div 
+        className="absolute right-0 top-0 w-1 h-full cursor-col-resize hover:bg-[#242424] transition-colors z-30 active:bg-[#242424]"
+        onMouseDown={(e) => {
+          e.preventDefault();
+          onResizeStart();
+        }}
+      />
       <div className="h-12 min-h-[48px] max-h-[48px] px-4 border-b border-[#242424] flex justify-between items-center font-bold tracking-tight bg-white sticky top-0 z-20">
         <span className="text-xs uppercase">Workspace</span>
         <div className="flex items-center space-x-2">
@@ -483,6 +494,16 @@ export const Sidebar = ({
             </button>
           </div>
         )}
+      </div>
+
+      <div className="h-12 border-t border-[#242424] flex items-center px-4 bg-white sticky bottom-0 z-20">
+        <button 
+          onClick={onOpenSettings}
+          className="flex items-center space-x-2 text-[10px] uppercase font-bold tracking-widest hover:bg-[#242424] hover:text-white p-2 rounded transition-all w-full"
+        >
+          <Settings size={14} />
+          <span>Settings</span>
+        </button>
       </div>
     </div>
   );

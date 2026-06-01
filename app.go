@@ -52,6 +52,7 @@ func (a *App) GetInitialFile() *InitialFile {
 // so we can call the runtime methods
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+	a.initDiscord()
 }
 
 // startWatching begins monitoring a directory recursively
@@ -172,7 +173,15 @@ func (a *App) Delete(path string) error {
 
 // Rename renames a file or directory
 func (a *App) Rename(oldPath string, newPath string) error {
-	return os.Rename(oldPath, newPath)
+	err := os.Rename(oldPath, newPath)
+	if err == nil {
+		// Update Discord status if it's a file
+		info, err := os.Stat(newPath)
+		if err == nil && !info.IsDir() {
+			a.updateDiscordStatus("Editing", filepath.Base(newPath))
+		}
+	}
+	return err
 }
 
 // ReadFile reads the content of a file
@@ -181,6 +190,8 @@ func (a *App) ReadFile(path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	// Update Discord status
+	a.updateDiscordStatus("Editing", filepath.Base(path))
 	return string(content), nil
 }
 

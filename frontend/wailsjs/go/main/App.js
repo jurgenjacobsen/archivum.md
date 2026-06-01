@@ -57,3 +57,7 @@ export function SaveFile(arg1, arg2) {
 export function SaveSettings(arg1, arg2) {
   return window['go']['main']['App']['SaveSettings'](arg1, arg2);
 }
+
+export function ToggleDiscordRPC(arg1) {
+  return window['go']['main']['App']['ToggleDiscordRPC'](arg1);
+}

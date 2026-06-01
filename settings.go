@@ -7,8 +7,10 @@ import (
 )
 
 type Settings struct {
-	AutoSave   bool `json:"autoSave"`
-	SyncScroll bool `json:"syncScroll"`
+	AutoSave     bool `json:"autoSave"`
+	SyncScroll   bool `json:"syncScroll"`
+	DiscordRPC   bool `json:"discordRPC"`
+	SidebarWidth int  `json:"sidebarWidth"`
 }
 
 const settingsFileName = "archivum-settings.json"
@@ -47,8 +49,10 @@ func loadSettingsFromFile(path string) (*Settings, error) {
 func (a *App) GetSettings(workspacePath string) Settings {
 	// Default settings
 	finalSettings := Settings{
-		AutoSave:   false,
-		SyncScroll: true,
+		AutoSave:     false,
+		SyncScroll:   true,
+		DiscordRPC:   true,
+		SidebarWidth: 256,
 	}
 
 	// 1. Try to load global settings

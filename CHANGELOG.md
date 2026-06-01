@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.0] - 2026-06-01
+
+### Added
+- **Settings Page**: Introduced a dedicated Settings page for user customization, including toggles for Auto-save, Sync Scroll, and Integrations.
+- **Discord Rich Presence**: Integrated Discord RPC to display current editing activity (current file name and status) on user's Discord profile.
+- **Resizable Sidebar**: Users can now resize the sidebar by dragging its right edge. The preferred width is persisted across sessions and can be reset to default in the Settings page.
+
 ## [1.0.10] - 2026-05-03
 
 ### Added
@@ -24,6 +31,7 @@ All notable changes to this project will be documented in this file.
 - **Metadata Update**: Updated copyright information to 2026 and synchronized versions across `wails.json` and `package.json`.
 
 ### Fixed
+- Fixed a bug in the sidebar where action buttons were displayed for parent items when hovering over deeply nested children. Hover states are now properly scoped to individual items.
 - Fixed a bug where settings were being saved to the workspace folder by default instead of the application directory.
 - Fixed Windows runner build failures by properly installing and configuring NSIS (makensis).
 - Resolved Linux build failures by ensuring the correct WebKitGTK dependencies and build tags were used.

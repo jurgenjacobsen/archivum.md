@@ -29,3 +29,5 @@ export function Rename(arg1:string,arg2:string):Promise<void>;
 export function SaveFile(arg1:string,arg2:string):Promise<void>;
 
 export function SaveSettings(arg1:main.Settings,arg2:string):Promise<void>;
+
+export function ToggleDiscordRPC(arg1:boolean):Promise<void>;

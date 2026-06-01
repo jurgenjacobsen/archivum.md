@@ -33,6 +33,8 @@ export namespace main {
 	export class Settings {
 	    autoSave: boolean;
 	    syncScroll: boolean;
+	    discordRPC: boolean;
+	    sidebarWidth: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new Settings(source);
@@ -42,6 +44,8 @@ export namespace main {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.autoSave = source["autoSave"];
 	        this.syncScroll = source["syncScroll"];
+	        this.discordRPC = source["discordRPC"];
+	        this.sidebarWidth = source["sidebarWidth"];
 	    }
 	}
 	export class UpdateInfo {

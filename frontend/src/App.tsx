@@ -3,7 +3,8 @@ import { Sidebar } from './components/Sidebar';
 import { Toolbar } from './components/Toolbar';
 import { Editor } from './components/Editor';
 import { Modal } from './components/Modal';
-import { ReadFile, SaveFile, GetSettings, SaveSettings, CheckForUpdates, GetInitialFile, PrintToPDF } from '../wailsjs/go/main/App';
+import { Settings } from './components/Settings';
+import { ReadFile, SaveFile, GetSettings, SaveSettings, CheckForUpdates, GetInitialFile, PrintToPDF, ToggleDiscordRPC } from '../wailsjs/go/main/App';
 import { BrowserOpenURL } from '../wailsjs/runtime/runtime';
 
 function App() {
@@ -15,6 +16,10 @@ function App() {
   const [isAutoSaving, setIsAutoSaving] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
   const [syncScroll, setSyncScroll] = useState(true);
+  const [showSettings, setShowSettings] = useState(false);
+  const [discordRPC, setDiscordRPC] = useState(true);
+  const [sidebarWidth, setSidebarWidth] = useState(256);
+  const [isResizing, setIsResizing] = useState(false);
 
   // Check for initial file
   useEffect(() => {
@@ -60,6 +65,8 @@ function App() {
         const settings = await GetSettings(workspaceRoot);
         setAutoSave(settings.autoSave);
         setSyncScroll(settings.syncScroll);
+        setDiscordRPC(settings.discordRPC);
+        if (settings.sidebarWidth) setSidebarWidth(settings.sidebarWidth);
       } catch (err) {
         console.error("Error loading settings:", err);
       }
@@ -70,7 +77,7 @@ function App() {
   const handleSetAutoSave = async (value: boolean) => {
     setAutoSave(value);
     try {
-      await SaveSettings({ autoSave: value, syncScroll }, workspaceRoot);
+      await SaveSettings({ autoSave: value, syncScroll, discordRPC, sidebarWidth }, workspaceRoot);
     } catch (err) {
       console.error("Error saving settings:", err);
     }
@@ -79,11 +86,59 @@ function App() {
   const handleSetSyncScroll = async (value: boolean) => {
     setSyncScroll(value);
     try {
-      await SaveSettings({ autoSave, syncScroll: value }, workspaceRoot);
+      await SaveSettings({ autoSave, syncScroll: value, discordRPC, sidebarWidth }, workspaceRoot);
     } catch (err) {
       console.error("Error saving settings:", err);
     }
   };
+
+  const handleSetDiscordRPC = async (value: boolean) => {
+    setDiscordRPC(value);
+    try {
+      await SaveSettings({ autoSave, syncScroll, discordRPC: value, sidebarWidth }, workspaceRoot);
+      await ToggleDiscordRPC(value);
+    } catch (err) {
+      console.error("Error saving settings:", err);
+    }
+  };
+
+  const handleSetSidebarWidth = async (width: number) => {
+    setSidebarWidth(width);
+    try {
+      await SaveSettings({ autoSave, syncScroll, discordRPC, sidebarWidth: width }, workspaceRoot);
+    } catch (err) {
+      console.error("Error saving settings:", err);
+    }
+  };
+
+  const startResizing = () => {
+    setIsResizing(true);
+  };
+
+  const stopResizing = () => {
+    if (isResizing) {
+      setIsResizing(false);
+      handleSetSidebarWidth(sidebarWidth);
+    }
+  };
+
+  const resize = (e: MouseEvent) => {
+    if (isResizing) {
+      const newWidth = e.clientX;
+      if (newWidth > 150 && newWidth < 600) {
+        setSidebarWidth(newWidth);
+      }
+    }
+  };
+
+  useEffect(() => {
+    window.addEventListener('mousemove', resize);
+    window.addEventListener('mouseup', stopResizing);
+    return () => {
+      window.removeEventListener('mousemove', resize);
+      window.removeEventListener('mouseup', stopResizing);
+    };
+  }, [isResizing, sidebarWidth]);
   
   // Modal state
   const [modal, setModal] = useState<{
@@ -247,58 +302,82 @@ function App() {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-white text-[#242424] font-sans antialiased">
-      <div className="no-print h-full">
+      <div 
+        className="no-print h-full flex-shrink-0 relative"
+        style={{ width: `${sidebarWidth}px` }}
+      >
         <Sidebar 
           workspaceRoot={workspaceRoot} 
           setWorkspaceRoot={setWorkspaceRoot} 
-          onFileSelect={handleFileSelect} 
+          onFileSelect={(path) => {
+            setShowSettings(false);
+            handleFileSelect(path);
+          }} 
           onFileRename={handleFileRename} 
           onFileDelete={handleFileDelete}
           showConfirm={showConfirm}
+          onOpenSettings={() => setShowSettings(true)}
+          onResizeStart={startResizing}
         />
       </div>
       
       <div className="flex-grow flex flex-col overflow-hidden">
-        <div className="no-print">
-          <Toolbar 
-            onFormat={handleFormat} 
-            onSave={handleSave} 
-            onPrint={handlePrint}
-            activeFile={activeFile} 
+        {showSettings ? (
+          <Settings 
+            onClose={() => setShowSettings(false)}
             autoSave={autoSave}
             setAutoSave={handleSetAutoSave}
-            isSaving={isSaving}
-            isAutoSaving={isAutoSaving}
-            isPrinting={isPrinting}
             syncScroll={syncScroll}
             setSyncScroll={handleSetSyncScroll}
-          />
-        </div>
-        
-        {activeFile ? (
-          <Editor 
-            content={content} 
-            setContent={setContent} 
-            textareaRef={textareaRef} 
-            previewRef={previewRef}
-            syncScroll={syncScroll}
+            discordRPC={discordRPC}
+            setDiscordRPC={handleSetDiscordRPC}
+            sidebarWidth={sidebarWidth}
+            setSidebarWidth={handleSetSidebarWidth}
           />
         ) : (
-          <div className="flex-grow flex items-center justify-center bg-white text-[#242424] flex-col p-12 select-none no-print">
-            <div className="border-[12px] border-[#242424] p-12 text-center inline-flex items-center space-x-12">
-                <img src="/icon.png" className='max-h-32 aspect-square' />
-                <div>
-                    <h1 className="welcome font-black mb-6 tracking-tighter leading-none">
-                        <span className='serif text-5xl opacity-50'>Archivum</span><br/>
-                        <span className='sans text-7xl text-[#242424]'>Markdown</span>
-                    </h1>
-                    <div className="h-2 bg-[#242424] w-24 mx-auto mb-6"></div>
-                    <p className="text-[10px] uppercase tracking-[0.3em] font-bold leading-loose text-gray-400">
-                        Open a workspace to begin<br/>archiving your thoughts.
-                    </p>
-                </div>
+          <>
+            <div className="no-print">
+              <Toolbar 
+                onFormat={handleFormat} 
+                onSave={handleSave} 
+                onPrint={handlePrint}
+                activeFile={activeFile} 
+                autoSave={autoSave}
+                setAutoSave={handleSetAutoSave}
+                isSaving={isSaving}
+                isAutoSaving={isAutoSaving}
+                isPrinting={isPrinting}
+                syncScroll={syncScroll}
+                setSyncScroll={handleSetSyncScroll}
+              />
             </div>
-          </div>
+            
+            {activeFile ? (
+              <Editor 
+                content={content} 
+                setContent={setContent} 
+                textareaRef={textareaRef} 
+                previewRef={previewRef}
+                syncScroll={syncScroll}
+              />
+            ) : (
+              <div className="flex-grow flex items-center justify-center bg-white text-[#242424] flex-col p-12 select-none no-print">
+                <div className="border-[12px] border-[#242424] p-12 text-center inline-flex items-center space-x-12">
+                    <img src="/icon.png" className='max-h-32 aspect-square' />
+                    <div>
+                        <h1 className="welcome font-black mb-6 tracking-tighter leading-none">
+                            <span className='serif text-5xl opacity-50'>Archivum</span><br/>
+                            <span className='sans text-7xl text-[#242424]'>Markdown</span>
+                        </h1>
+                        <div className="h-2 bg-[#242424] w-24 mx-auto mb-6"></div>
+                        <p className="text-[10px] uppercase tracking-[0.3em] font-bold leading-loose text-gray-400">
+                            Open a workspace to begin<br/>archiving your thoughts.
+                        </p>
+                    </div>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
