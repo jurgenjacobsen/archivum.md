@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, memo } from 'react';
 import { Folder, File, ChevronRight, ChevronDown, FolderOpen, FilePlus, FolderPlus, Edit2, Trash2, GripVertical, Settings } from 'lucide-react';
 import { GetDirectoryLevel, OpenWorkspaceDialog, CreateFile, CreateDirectory, Rename, Delete } from "../../wailsjs/go/main/App";
 import { EventsOn } from "../../wailsjs/runtime/runtime";
+import { ContextMenu } from './ContextMenu';
 
 export interface FileNode {
   name: string;
@@ -71,7 +72,7 @@ const NewItemInput = ({
   );
 };
 
-const FileTreeItem = ({ 
+const FileTreeItem = memo(({ 
   item, 
   onFileSelect, 
   onFileRename, 
@@ -89,6 +90,8 @@ const FileTreeItem = ({
   const [showNewInput, setShowNewInput] = useState<'file' | 'folder' | null>(null);
   const [isRenaming, setIsRenaming] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+  const [renderLimit, setRenderLimit] = useState(100);
 
   const loadDirectory = useCallback(async () => {
     try {
@@ -106,6 +109,9 @@ const FileTreeItem = ({
         await loadDirectory();
       }
       setIsOpen(!isOpen);
+      if (isOpen) {
+        setRenderLimit(100);
+      }
     } else {
       onFileSelect(item.path);
     }
@@ -146,8 +152,8 @@ const FileTreeItem = ({
     }
   };
 
-  const handleDelete = async (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleDelete = async (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     showConfirm(
       "Confirm Deletion", 
       `Are you sure you want to permanently delete "${item.name}"? This action cannot be undone.`,
@@ -231,6 +237,11 @@ const FileTreeItem = ({
       <div 
         className={`group flex items-center justify-between cursor-pointer p-1 text-sm select-none transition-colors ${isDragOver ? 'bg-[#242424] text-white' : 'hover:bg-gray-100'}`}
         onClick={toggleOpen}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setContextMenu({ x: e.clientX, y: e.clientY });
+        }}
         draggable
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
@@ -286,6 +297,61 @@ const FileTreeItem = ({
         </div>
       </div>
 
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={() => setContextMenu(null)}
+          options={
+            item.isDir ? [
+              {
+                label: isOpen ? 'Collapse' : 'Open',
+                icon: isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />,
+                onClick: () => toggleOpen()
+              },
+              {
+                label: 'New File',
+                icon: <FilePlus size={14} />,
+                onClick: () => setShowNewInput('file')
+              },
+              {
+                label: 'New Folder',
+                icon: <FolderPlus size={14} />,
+                onClick: () => setShowNewInput('folder')
+              },
+              {
+                label: 'Rename',
+                icon: <Edit2 size={14} />,
+                onClick: () => setIsRenaming(true)
+              },
+              {
+                label: 'Delete',
+                icon: <Trash2 size={14} />,
+                onClick: () => handleDelete(),
+                danger: true
+              }
+            ] : [
+              {
+                label: 'Open',
+                icon: <FolderOpen size={14} />,
+                onClick: () => onFileSelect(item.path)
+              },
+              {
+                label: 'Rename',
+                icon: <Edit2 size={14} />,
+                onClick: () => setIsRenaming(true)
+              },
+              {
+                label: 'Delete',
+                icon: <Trash2 size={14} />,
+                onClick: () => handleDelete(),
+                danger: true
+              }
+            ]
+          }
+        />
+      )}
+
       {showNewInput && (
         <NewItemInput 
           type={showNewInput} 
@@ -297,16 +363,26 @@ const FileTreeItem = ({
       {isOpen && item.isDir && (
         <div className="border-l border-gray-300 ml-2">
           {children && children.length > 0 ? (
-            children.map((child) => (
-              <FileTreeItem 
-                key={child.path} 
-                item={child} 
-                onFileSelect={onFileSelect} 
-                onFileRename={onFileRename}
-                onFileDelete={onFileDelete}
-                showConfirm={showConfirm}
-              />
-            ))
+            <>
+              {children.slice(0, renderLimit).map((child) => (
+                <FileTreeItem 
+                  key={child.path} 
+                  item={child} 
+                  onFileSelect={onFileSelect} 
+                  onFileRename={onFileRename}
+                  onFileDelete={onFileDelete}
+                  showConfirm={showConfirm}
+                />
+              ))}
+              {children.length > renderLimit && (
+                <button 
+                  onClick={() => setRenderLimit(prev => prev + 200)}
+                  className="w-full text-left pl-6 py-1 text-[10px] uppercase font-bold text-gray-400 hover:text-[#242424] transition-colors"
+                >
+                  Showing {renderLimit} of {children.length} items. Load more...
+                </button>
+              )}
+            </>
           ) : (
             <div className="p-1 pl-6 text-xs text-gray-400 italic">Empty</div>
           )}
@@ -314,7 +390,7 @@ const FileTreeItem = ({
       )}
     </div>
   );
-};
+});
 
 export const Sidebar = ({ 
   onFileSelect, 
@@ -329,6 +405,8 @@ export const Sidebar = ({
   const [rootItems, setRootItems] = useState<FileNode[]>([]);
   const [showNewInput, setShowNewInput] = useState<'file' | 'folder' | null>(null);
   const [isDragOverRoot, setIsDragOverRoot] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+  const [renderLimit, setRenderLimit] = useState(100);
 
   const loadRoot = useCallback(async (path: string) => {
     try {
@@ -406,24 +484,20 @@ export const Sidebar = ({
     }
   }, [workspaceRoot, loadRoot]);
 
-  useEffect(() => {
-    if (!workspaceRoot) return;
-
-    const unsubscribe = EventsOn('workspace-update', (parentPath: string) => {
-      if (parentPath === workspaceRoot) {
-        loadRoot(workspaceRoot);
-      }
-    });
-
-    return () => unsubscribe();
-  }, [workspaceRoot, loadRoot]);
-
   return (
     <div 
       className={`w-full h-full border-r border-[#242424] flex flex-col bg-white text-[#242424] overflow-y-auto font-sans transition-colors relative ${isDragOverRoot ? 'ring-2 ring-inset ring-[#242424]' : ''}`}
       onDragOver={handleDragOverRoot}
       onDragLeave={() => setIsDragOverRoot(false)}
       onDrop={handleDropRoot}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        const target = e.target as HTMLElement;
+        if (target.closest('button') || target.closest('input')) {
+          return;
+        }
+        setContextMenu({ x: e.clientX, y: e.clientY });
+      }}
     >
       <div 
         className="absolute right-0 top-0 w-1 h-full cursor-col-resize hover:bg-[#242424] transition-colors z-30 active:bg-[#242424]"
@@ -466,16 +540,26 @@ export const Sidebar = ({
             )}
 
             {rootItems && rootItems.length > 0 ? (
-              rootItems.map((item) => (
-                <FileTreeItem 
-                  key={item.path} 
-                  item={item} 
-                  onFileSelect={onFileSelect} 
-                  onFileRename={onFileRename}
-                  onFileDelete={onFileDelete}
-                  showConfirm={showConfirm}
-                />
-              ))
+              <>
+                {rootItems.slice(0, renderLimit).map((item) => (
+                  <FileTreeItem 
+                    key={item.path} 
+                    item={item} 
+                    onFileSelect={onFileSelect} 
+                    onFileRename={onFileRename}
+                    onFileDelete={onFileDelete}
+                    showConfirm={showConfirm}
+                  />
+                ))}
+                {rootItems.length > renderLimit && (
+                  <button 
+                    onClick={() => setRenderLimit(prev => prev + 200)}
+                    className="w-full text-left pl-6 py-1 text-[10px] uppercase font-bold text-gray-400 hover:text-[#242424] transition-colors"
+                  >
+                    Showing {renderLimit} of {rootItems.length} items. Load more...
+                  </button>
+                )}
+              </>
             ) : (
               <div className="p-4 text-xs text-center text-gray-500 italic">
                 Empty folder
@@ -505,6 +589,49 @@ export const Sidebar = ({
           <span>Settings</span>
         </button>
       </div>
+
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={() => setContextMenu(null)}
+          options={
+            workspaceRoot ? [
+              {
+                label: 'New File',
+                icon: <FilePlus size={14} />,
+                onClick: () => setShowNewInput('file')
+              },
+              {
+                label: 'New Folder',
+                icon: <FolderPlus size={14} />,
+                onClick: () => setShowNewInput('folder')
+              },
+              {
+                label: 'Change Folder',
+                icon: <FolderOpen size={14} />,
+                onClick: () => openWorkspace()
+              },
+              {
+                label: 'Settings',
+                icon: <Settings size={14} />,
+                onClick: () => onOpenSettings()
+              }
+            ] : [
+              {
+                label: 'Open Folder',
+                icon: <FolderOpen size={14} />,
+                onClick: () => openWorkspace()
+              },
+              {
+                label: 'Settings',
+                icon: <Settings size={14} />,
+                onClick: () => onOpenSettings()
+              }
+            ]
+          }
+        />
+      )}
     </div>
   );
 };

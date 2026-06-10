@@ -1,14 +1,14 @@
-![Archivum Markdown - Banner](/frontend/public/banner.png)
+![Archivum.md - Banner](/frontend/public/banner.png)
 
-[![Wails build](https://github.com/jurgenjacobsen/archivum-markdown/actions/workflows/build.yml/badge.svg)](https://github.com/jurgenjacobsen/archivum-markdown/actions/workflows/build.yml)
+[![Wails build](https://github.com/jurgenjacobsen/archivum.md/actions/workflows/build.yml/badge.svg)](https://github.com/jurgenjacobsen/archivum.md/actions/workflows/build.yml)
 [![wakatime](https://wakatime.com/badge/user/010adc07-6382-419f-87bc-0b3f507ee495/project/fb303ffe-8258-4dcc-bfc9-e34da048aafb.svg)](https://wakatime.com/badge/user/010adc07-6382-419f-87bc-0b3f507ee495/project/fb303ffe-8258-4dcc-bfc9-e34da048aafb)
-![GitHub last commit (branch)](https://img.shields.io/github/last-commit/jurgenjacobsen/archivum-markdown/main)
-![GitHub top language](https://img.shields.io/github/languages/top/jurgenjacobsen/archivum-markdown)
-![GitHub repo size](https://img.shields.io/github/repo-size/jurgenjacobsen/archivum-markdown)
-![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/jurgenjacobsen/archivum-markdown/total)
+![GitHub last commit (branch)](https://img.shields.io/github/last-commit/jurgenjacobsen/archivum.md/main)
+![GitHub top language](https://img.shields.io/github/languages/top/jurgenjacobsen/archivum.md)
+![GitHub repo size](https://img.shields.io/github/repo-size/jurgenjacobsen/archivum.md)
+![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/jurgenjacobsen/archivum.md/total)
 
-# Archivum Markdown
-**Archivum Markdown** is a high-performance desktop Markdown editor designed for speed, simplicity, and focus. Built with Wails, it combines the power of Go with the flexibility of React and TypeScript to provide a seamless writing experience.
+# Archivum.md
+**Archivum.md** is a high-performance desktop Markdown editor designed for speed, simplicity, and focus. Built with Wails, it combines the power of Go with the flexibility of React and TypeScript to provide a seamless writing experience.
 
 ## Key Features
 - **Workspace Integration:** Open any folder as a workspace and navigate your files with an integrated sidebar.

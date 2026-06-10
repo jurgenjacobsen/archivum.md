@@ -65,7 +65,7 @@ jobs:
           # Rename for a clean download name
           $installer = Get-ChildItem -Path build/bin -Filter "*installer.exe" | Select-Object -First 1
           if ($installer) {
-            Move-Item -Path $installer.FullName -Destination "build/bin/ArchivumMarkdown-Installer.exe" -Force
+            Move-Item -Path $installer.FullName -Destination "build/bin/Archivum.md-Installer.exe" -Force
           } else {
             Write-Error "Installer not found in build/bin after NSIS build"
           }
@@ -75,23 +75,23 @@ jobs:
         run: |
           wails build -platform darwin/universal
           npm install -g create-dmg
-          create-dmg build/bin/ArchivumMarkdown.app build/bin/ || true
-          mv build/bin/*.dmg build/bin/ArchivumMarkdown.dmg || true
+          create-dmg build/bin/Archivum.md.app build/bin/ || true
+          mv build/bin/*.dmg build/bin/Archivum.md.dmg || true
 
       - name: Build Linux
         if: runner.os == 'Linux'
         run: |
           wails build -platform linux/amd64
           cd build/bin
-          tar -czvf ArchivumMarkdown-Linux.tar.gz ArchivumMarkdown
+          tar -czvf Archivum.md-Linux.tar.gz Archivum.md
 
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            build/bin/ArchivumMarkdown-Installer.exe
-            build/bin/ArchivumMarkdown.dmg
-            build/bin/ArchivumMarkdown-Linux.tar.gz
+            build/bin/Archivum.md-Installer.exe
+            build/bin/Archivum.md.dmg
+            build/bin/Archivum.md-Linux.tar.gz
           fail_on_unmatched_files: false
           draft: false
           prerelease: false

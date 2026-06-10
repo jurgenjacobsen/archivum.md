@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.1] - 2026-06-10
+
+### Added
+- **Custom Context Menu**: Implemented a responsive custom right-click context menu within the application. Provides context-specific actions:
+    - **File tree items**: Open, Rename, Delete files; and Open/Collapse, New File, New Folder, Rename, Delete folders.
+    - **Sidebar background**: New File, New Folder, Change Folder, and Settings.
+    - **Welcome Page**: Open Folder and Settings, replacing the native browser context menu.
+    - **Menubar / Header bar**: Save File, Print to PDF, and Settings.
+    - **Editor Pane**: Bold, Italic, Code Block, Save File, Print to PDF, and Settings.
+    - **Preview Pane**: Copy Markdown, Print to PDF, and Settings.
+
+### Changed
+- **Project Renaming**: Renamed the application and project branding to "Archivum.md" instead of "Archivum Markdown" across all configuration files, the main window title, Discord Rich Presence integration, CI/CD pipeline, and frontend welcome and settings screens.
+
+### Optimized
+- **Performance Optimizations**:
+    - Implemented lazy loading and code splitting for the Settings page using React `lazy` and `Suspense`.
+    - Added typing debounce (150ms) in the editor pane to decouple keystrokes from parsing and rendering, preventing typing lag on large files.
+    - Wrapped key state update callbacks in `useCallback` and memoized `FileTreeItem` elements to prevent redraw cascades.
+    - Added directory list pagination (limit of 100 items with a "Load more..." button) on both root folders and subdirectories in the sidebar to prevent DOM bloat.
+    - Added an animated loading state/spinner when opening files.
+
 ## [1.1.0] - 2026-06-01
 
 ### Added

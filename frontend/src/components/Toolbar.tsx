@@ -12,6 +12,7 @@ interface ToolbarProps {
   isPrinting: boolean;
   syncScroll: boolean;
   setSyncScroll: (value: boolean) => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
 }
 
 export const Toolbar = ({ 
@@ -25,7 +26,8 @@ export const Toolbar = ({
   isAutoSaving,
   isPrinting,
   syncScroll,
-  setSyncScroll
+  setSyncScroll,
+  onContextMenu
 }: ToolbarProps) => {
   const buttons = [
     { icon: Bold, type: 'bold', title: 'Bold' },
@@ -41,7 +43,15 @@ export const Toolbar = ({
   ];
 
   return (
-    <div className="h-12 min-h-[48px] max-h-[48px] border-b border-[#242424] flex items-center px-4 bg-white sticky top-0 z-10 select-none overflow-hidden">
+    <div 
+      className="h-12 min-h-[48px] max-h-[48px] border-b border-[#242424] flex items-center px-4 bg-white sticky top-0 z-10 select-none overflow-hidden"
+      onContextMenu={(e) => {
+        if (onContextMenu) {
+          e.preventDefault();
+          onContextMenu(e);
+        }
+      }}
+    >
       <div className="flex-grow flex items-center space-x-1 overflow-x-auto no-scrollbar">
         {buttons.map((btn) => (
           <button

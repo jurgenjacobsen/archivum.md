@@ -124,8 +124,8 @@ export const Settings = ({
         <div className="mt-12 pt-12 border-t border-gray-100 text-center">
           <div className="inline-block border-[6px] border-[#242424] p-6 text-center">
             <h1 className="welcome font-black mb-2 tracking-tighter leading-none">
-              <span className='serif text-xl opacity-50'>Archivum</span><br/>
-              <span className='sans text-3xl text-[#242424]'>Markdown</span>
+              <span className='serif text-xl opacity-50'>Archivum</span>
+              <span className='sans text-xl text-[#242424]'>.md</span>
             </h1>
             <p className="text-[8px] uppercase tracking-[0.3em] font-bold text-gray-400">
               Version 1.0.0

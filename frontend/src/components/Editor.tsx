@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { BrowserOpenURL } from "../../wailsjs/runtime/runtime";
@@ -9,10 +9,37 @@ interface EditorProps {
   textareaRef: React.RefObject<HTMLTextAreaElement>;
   previewRef: React.RefObject<HTMLDivElement>;
   syncScroll: boolean;
+  onEditorContextMenu?: (e: React.MouseEvent) => void;
+  onPreviewContextMenu?: (e: React.MouseEvent) => void;
 }
 
-export const Editor = ({ content, setContent, textareaRef, previewRef, syncScroll }: EditorProps) => {
+export const Editor = ({ 
+  content, 
+  setContent, 
+  textareaRef, 
+  previewRef, 
+  syncScroll,
+  onEditorContextMenu,
+  onPreviewContextMenu
+}: EditorProps) => {
+  const [localContent, setLocalContent] = useState(content);
   const activeSource = useRef<HTMLElement | null>(null);
+
+  // Sync local content when parent content changes (e.g. file loaded or formatting applied)
+  useEffect(() => {
+    setLocalContent(content);
+  }, [content]);
+
+  // Debounce parent state update (prose rendering and autosave)
+  useEffect(() => {
+    if (localContent === content) return;
+
+    const timer = setTimeout(() => {
+      setContent(localContent);
+    }, 150); // 150ms debounce for smooth typing
+
+    return () => clearTimeout(timer);
+  }, [localContent, content, setContent]);
 
   const handleScroll = (e: React.UIEvent<HTMLElement>) => {
     if (!syncScroll || activeSource.current !== e.currentTarget) return;
@@ -33,12 +60,20 @@ export const Editor = ({ content, setContent, textareaRef, previewRef, syncScrol
   return (
     <div className="flex-grow flex overflow-hidden bg-white">
       {/* Edit Pane */}
-      <div className="w-1/2 h-full border-r border-[#242424] flex flex-col no-print">
+      <div 
+        className="w-1/2 h-full border-r border-[#242424] flex flex-col no-print"
+        onContextMenu={(e) => {
+          if (onEditorContextMenu) {
+            e.preventDefault();
+            onEditorContextMenu(e);
+          }
+        }}
+      >
         <div className="bg-[#242424] text-white text-[10px] uppercase font-bold px-4 py-1 tracking-widest flex-shrink-0">Editor</div>
         <textarea
           ref={textareaRef}
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
+          value={localContent}
+          onChange={(e) => setLocalContent(e.target.value)}
           onScroll={handleScroll}
           onMouseEnter={handleMouseEnter}
           className="flex-grow p-8 outline-none resize-none font-mono text-sm text-[#242424] leading-relaxed selection:bg-[#242424] selection:text-white"
@@ -48,7 +83,15 @@ export const Editor = ({ content, setContent, textareaRef, previewRef, syncScrol
       </div>
 
       {/* Preview Pane */}
-      <div className="w-1/2 h-full flex flex-col overflow-hidden print:w-full print:h-auto print:overflow-visible">
+      <div 
+        className="w-1/2 h-full flex flex-col overflow-hidden print:w-full print:h-auto print:overflow-visible"
+        onContextMenu={(e) => {
+          if (onPreviewContextMenu) {
+            e.preventDefault();
+            onPreviewContextMenu(e);
+          }
+        }}
+      >
         <div className="bg-white text-[#242424] text-[10px] uppercase font-bold px-4 py-1 border-b border-[#242424] tracking-widest flex-shrink-0 no-print">Preview</div>
         <div 
           ref={previewRef}

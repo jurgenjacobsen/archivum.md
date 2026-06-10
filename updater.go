@@ -16,7 +16,7 @@ var wailsConfig []byte
 
 const (
 	owner = "jurgenjacobsen"
-	repo  = "archivum-markdown"
+	repo  = "archivum.md"
 )
 
 func getAppVersion() string {

@@ -48,7 +48,7 @@ func (a *App) updateDiscordStatus(details string, state string) {
 		State:      state,
 		Details:    details,
 		LargeImage: "logo",
-		LargeText:  "Archivum Markdown",
+		LargeText:  "Archivum.md",
 		Timestamps: &client.Timestamps{
 			Start: &now,
 		},

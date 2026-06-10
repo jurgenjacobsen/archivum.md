@@ -1,11 +1,13 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, lazy, Suspense, useCallback } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Toolbar } from './components/Toolbar';
 import { Editor } from './components/Editor';
 import { Modal } from './components/Modal';
-import { Settings } from './components/Settings';
-import { ReadFile, SaveFile, GetSettings, SaveSettings, CheckForUpdates, GetInitialFile, PrintToPDF, ToggleDiscordRPC } from '../wailsjs/go/main/App';
+const Settings = lazy(() => import('./components/Settings').then(m => ({ default: m.Settings })));
+import { ReadFile, SaveFile, GetSettings, SaveSettings, CheckForUpdates, GetInitialFile, PrintToPDF, ToggleDiscordRPC, OpenWorkspaceDialog } from '../wailsjs/go/main/App';
 import { BrowserOpenURL } from '../wailsjs/runtime/runtime';
+import { FolderOpen, Settings as SettingsIcon, Bold, Italic, Code, Copy, Save, Printer } from 'lucide-react';
+import { ContextMenu } from './components/ContextMenu';
 
 function App() {
   const [workspaceRoot, setWorkspaceRoot] = useState('');
@@ -20,6 +22,8 @@ function App() {
   const [discordRPC, setDiscordRPC] = useState(true);
   const [sidebarWidth, setSidebarWidth] = useState(256);
   const [isResizing, setIsResizing] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; options: any[] } | null>(null);
+  const [isLoadingFile, setIsLoadingFile] = useState(false);
 
   // Check for initial file
   useEffect(() => {
@@ -168,39 +172,42 @@ function App() {
     return () => clearTimeout(timer);
   }, [content, autoSave, activeFile]);
 
-  const showAlert = (title: string, message: string) => {
+  const showAlert = useCallback((title: string, message: string) => {
     setModal({ isOpen: true, title, message, type: 'alert' });
-  };
+  }, []);
 
-  const showConfirm = (title: string, message: string, onConfirm: () => void) => {
+  const showConfirm = useCallback((title: string, message: string, onConfirm: () => void) => {
     setModal({ isOpen: true, title, message, onConfirm, type: 'confirm' });
-  };
+  }, []);
 
-  const handleFileSelect = async (path: string) => {
+  const handleFileSelect = useCallback(async (path: string) => {
     if (path.toLowerCase().endsWith('.md')) {
       try {
+        setIsLoadingFile(true);
         const fileContent = await ReadFile(path);
         setActiveFile(path);
         setContent(fileContent);
       } catch (err) {
         showAlert("Error", "Could not read file.");
         console.error("Error reading file:", err);
+      } finally {
+        setIsLoadingFile(false);
       }
     }
-  };
+  }, [showAlert]);
 
-  const handleFileRename = (oldPath: string, newPath: string) => {
+  const handleFileRename = useCallback((oldPath: string, newPath: string) => {
     if (activeFile === oldPath) {
       setActiveFile(newPath);
     }
-  };
+  }, [activeFile]);
 
-  const handleFileDelete = (path: string) => {
+  const handleFileDelete = useCallback((path: string) => {
     if (activeFile === path) {
       setActiveFile(null);
       setContent('');
     }
-  };
+  }, [activeFile]);
 
   const handleSave = async (isAuto = false) => {
     if (activeFile) {
@@ -300,6 +307,129 @@ function App() {
     }, 0);
   };
 
+  const openWelcomeContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      options: [
+        {
+          label: 'Open Folder',
+          icon: <FolderOpen size={14} />,
+          onClick: async () => {
+            try {
+              const path = await OpenWorkspaceDialog();
+              if (path) {
+                setWorkspaceRoot(path);
+              }
+            } catch (err) {
+              console.error("Failed to open workspace:", err);
+            }
+          }
+        },
+        {
+          label: 'Settings',
+          icon: <SettingsIcon size={14} />,
+          onClick: () => setShowSettings(true)
+        }
+      ]
+    });
+  };
+
+  const openToolbarContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      options: [
+        ...(activeFile ? [
+          {
+            label: 'Save File',
+            icon: <Save size={14} />,
+            onClick: () => handleSave()
+          },
+          {
+            label: 'Print to PDF',
+            icon: <Printer size={14} />,
+            onClick: () => handlePrint()
+          }
+        ] : []),
+        {
+          label: 'Settings',
+          icon: <SettingsIcon size={14} />,
+          onClick: () => setShowSettings(true)
+        }
+      ]
+    });
+  };
+
+  const openEditorContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      options: [
+        {
+          label: 'Bold',
+          icon: <Bold size={14} />,
+          onClick: () => handleFormat('bold')
+        },
+        {
+          label: 'Italic',
+          icon: <Italic size={14} />,
+          onClick: () => handleFormat('italic')
+        },
+        {
+          label: 'Code Block',
+          icon: <Code size={14} />,
+          onClick: () => handleFormat('code')
+        },
+        {
+          label: 'Save File',
+          icon: <Save size={14} />,
+          onClick: () => handleSave()
+        },
+        {
+          label: 'Print to PDF',
+          icon: <Printer size={14} />,
+          onClick: () => handlePrint()
+        },
+        {
+          label: 'Settings',
+          icon: <SettingsIcon size={14} />,
+          onClick: () => setShowSettings(true)
+        }
+      ]
+    });
+  };
+
+  const openPreviewContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      options: [
+        {
+          label: 'Copy Markdown',
+          icon: <Copy size={14} />,
+          onClick: () => {
+            navigator.clipboard.writeText(content);
+          }
+        },
+        {
+          label: 'Print to PDF',
+          icon: <Printer size={14} />,
+          onClick: () => handlePrint()
+        },
+        {
+          label: 'Settings',
+          icon: <SettingsIcon size={14} />,
+          onClick: () => setShowSettings(true)
+        }
+      ]
+    });
+  };
+
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-white text-[#242424] font-sans antialiased">
       <div 
@@ -323,17 +453,25 @@ function App() {
       
       <div className="flex-grow flex flex-col overflow-hidden">
         {showSettings ? (
-          <Settings 
-            onClose={() => setShowSettings(false)}
-            autoSave={autoSave}
-            setAutoSave={handleSetAutoSave}
-            syncScroll={syncScroll}
-            setSyncScroll={handleSetSyncScroll}
-            discordRPC={discordRPC}
-            setDiscordRPC={handleSetDiscordRPC}
-            sidebarWidth={sidebarWidth}
-            setSidebarWidth={handleSetSidebarWidth}
-          />
+          <Suspense fallback={
+            <div className="flex-grow flex flex-col items-center justify-center bg-white text-[#242424]">
+              <div className="border-[6px] border-[#242424] p-6 text-center animate-pulse">
+                <div className="welcome font-black text-xl uppercase tracking-widest text-[#242424]">Loading Settings...</div>
+              </div>
+            </div>
+          }>
+            <Settings 
+              onClose={() => setShowSettings(false)}
+              autoSave={autoSave}
+              setAutoSave={handleSetAutoSave}
+              syncScroll={syncScroll}
+              setSyncScroll={handleSetSyncScroll}
+              discordRPC={discordRPC}
+              setDiscordRPC={handleSetDiscordRPC}
+              sidebarWidth={sidebarWidth}
+              setSidebarWidth={handleSetSidebarWidth}
+            />
+          </Suspense>
         ) : (
           <>
             <div className="no-print">
@@ -349,25 +487,37 @@ function App() {
                 isPrinting={isPrinting}
                 syncScroll={syncScroll}
                 setSyncScroll={handleSetSyncScroll}
+                onContextMenu={openToolbarContextMenu}
               />
             </div>
             
-            {activeFile ? (
+            {isLoadingFile ? (
+              <div className="flex-grow flex flex-col items-center justify-center bg-white text-[#242424] no-print">
+                <div className="border-[12px] border-[#242424] p-12 text-center animate-pulse">
+                  <div className="welcome font-black text-2xl uppercase tracking-widest text-[#242424]">Opening file...</div>
+                </div>
+              </div>
+            ) : activeFile ? (
               <Editor 
                 content={content} 
                 setContent={setContent} 
                 textareaRef={textareaRef} 
                 previewRef={previewRef}
                 syncScroll={syncScroll}
+                onEditorContextMenu={openEditorContextMenu}
+                onPreviewContextMenu={openPreviewContextMenu}
               />
             ) : (
-              <div className="flex-grow flex items-center justify-center bg-white text-[#242424] flex-col p-12 select-none no-print">
+              <div 
+                className="flex-grow flex items-center justify-center bg-white text-[#242424] flex-col p-12 select-none no-print"
+                onContextMenu={openWelcomeContextMenu}
+              >
                 <div className="border-[12px] border-[#242424] p-12 text-center inline-flex items-center space-x-12">
                     <img src="/icon.png" className='max-h-32 aspect-square' />
                     <div>
                         <h1 className="welcome font-black mb-6 tracking-tighter leading-none">
-                            <span className='serif text-5xl opacity-50'>Archivum</span><br/>
-                            <span className='sans text-7xl text-[#242424]'>Markdown</span>
+                            <span className='serif text-5xl opacity-50'>Archivum</span>
+                            <span className='sans text-5xl text-[#242424]'>.md</span>
                         </h1>
                         <div className="h-2 bg-[#242424] w-24 mx-auto mb-6"></div>
                         <p className="text-[10px] uppercase tracking-[0.3em] font-bold leading-loose text-gray-400">
@@ -389,6 +539,14 @@ function App() {
         onClose={() => setModal({ ...modal, isOpen: false })}
         type={modal.type}
       />
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={() => setContextMenu(null)}
+          options={contextMenu.options}
+        />
+      )}
     </div>
   );
 }

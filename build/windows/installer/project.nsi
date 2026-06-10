@@ -19,13 +19,13 @@ Unicode true
 ####
 ## The following information is taken from the ProjectInfo file, but they can be overwritten here.
 ####
-!define INFO_PROJECTNAME    "ArchivumMarkdown"
+!define INFO_PROJECTNAME    "Archivum.md"
 !define INFO_COMPANYNAME    "Archivum"
-!define INFO_PRODUCTNAME    "Archivum Markdown"
+!define INFO_PRODUCTNAME    "Archivum.md"
 ## !define INFO_PRODUCTVERSION "1.0.7"     # Default "{{.Info.ProductVersion}}"
 !define INFO_COPYRIGHT      "Copyright (c) 2026 Archivum. All rights reserved."
 ###
-!define PRODUCT_EXECUTABLE  "ArchivumMarkdown.exe"
+!define PRODUCT_EXECUTABLE  "Archivum.md.exe"
 ## !define UNINST_KEY_NAME     "UninstKeyInRegistry"  # Default "${INFO_COMPANYNAME}${INFO_PRODUCTNAME}"
 ####
 ## !define REQUEST_EXECUTION_LEVEL "admin"            # Default "admin"  see also https://nsis.sourceforge.io/Docs/Chapter4.html
