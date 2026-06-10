@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.1.1] - 2026-06-10
+## [1.0.2] - 2026-06-10
 
 ### Added
 - **Custom Context Menu**: Implemented a responsive custom right-click context menu within the application. Provides context-specific actions:
